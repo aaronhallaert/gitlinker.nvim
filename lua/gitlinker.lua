@@ -32,11 +32,8 @@ M.actions = require("gitlinker.actions")
 function M.setup(config)
   if config then
     opts.setup(config.opts)
-    M.hosts.callbacks = vim.tbl_deep_extend(
-      "force",
-      M.hosts.callbacks,
-      config.callbacks or {}
-    )
+    M.hosts.callbacks =
+      vim.tbl_deep_extend("force", M.hosts.callbacks, config.callbacks or {})
     mappings.set(config.mappings)
   else
     opts.setup()
@@ -84,10 +81,8 @@ local function get_buf_range_url_data(mode, user_opts)
       vim.log.levels.WARN
     )
   end
-  local range = buffer.get_range(
-    mode,
-    user_opts.add_current_line_on_normal_mode
-  )
+  local range =
+    buffer.get_range(mode, user_opts.add_current_line_on_normal_mode)
 
   return vim.tbl_extend("force", repo_url_data, {
     rev = rev,
@@ -137,9 +132,8 @@ end
 function M.get_repo_url(user_opts)
   user_opts = vim.tbl_deep_extend("force", opts.get(), user_opts or {})
 
-  local repo_url_data = git.get_repo_data(
-    git.get_branch_remote() or user_opts.remote
-  )
+  local repo_url_data =
+    git.get_repo_data(git.get_branch_remote() or user_opts.remote)
   if not repo_url_data then
     return nil
   end
@@ -150,6 +144,51 @@ function M.get_repo_url(user_opts)
   end
 
   local url = matching_callback(repo_url_data)
+
+  if user_opts.action_callback then
+    user_opts.action_callback(url)
+  end
+  if user_opts.print_url then
+    vim.notify(url)
+  end
+
+  return url
+end
+
+--- Retrieves the url for the passed commit hash
+--
+-- Gets the url data elements
+-- Passes it to the matching host callback
+-- Retrieves the url from the host callback
+-- Passes the url to the url callback
+-- Prints the url
+--
+-- @param hash commit hash
+-- @param user_opts a table to override options passed
+--
+-- @returns The url string
+function M.get_commit_url(hash, user_opts)
+  user_opts = vim.tbl_deep_extend("force", opts.get(), user_opts or {})
+
+  local git_root = git.get_git_root()
+  if not git_root then
+    vim.notify("Not in a git repository", vim.log.levels.ERROR)
+    return nil
+  end
+  local remote = git.get_branch_remote() or user_opts.remote
+  local url_data = git.get_repo_data(remote)
+
+  if url_data == nil then
+    return nil
+  end
+
+  local matching_callback = M.hosts.get_matching_callback(url_data.host)
+  if not matching_callback then
+    return nil
+  end
+
+  url_data.rev = hash
+  local url = matching_callback(url_data)
 
   if user_opts.action_callback then
     user_opts.action_callback(url)

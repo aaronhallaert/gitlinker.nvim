@@ -11,9 +11,15 @@ end
 --- Constructs a github style url
 function M.get_github_type_url(url_data)
   local url = M.get_base_https_url(url_data)
-  if not url_data.file or not url_data.rev then
+  if not url_data.file and not url_data.rev then
     return url
   end
+
+  if not url_data.file and url_data.rev then
+    url = url .. "/commit/" .. url_data.rev
+    return url
+  end
+
   url = url .. "/blob/" .. url_data.rev .. "/" .. url_data.file
 
   if not url_data.lstart then
@@ -65,9 +71,15 @@ end
 --- Constructs a bitbucket style url
 function M.get_bitbucket_type_url(url_data)
   local url = M.get_base_https_url(url_data)
-  if not url_data.file or not url_data.rev then
+  if not url_data.file and not url_data.rev then
     return url
   end
+
+  if not url_data.file and url_data.rev then
+    url = url .. "/commits/" .. url_data.rev
+    return url
+  end
+
   url = url .. "/src/" .. url_data.rev .. "/" .. url_data.file
 
   if not url_data.lstart then
